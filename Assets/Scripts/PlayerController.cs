@@ -28,26 +28,31 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Vector3 forward = Camera.main.transform.forward;
-        Vector3 right = Camera.main.transform.right;
-        forward.y = 0;
-        right.y = 0;
-        forward = forward.normalized;
-        right = right.normalized;
+        Vector3 cameraForward = Camera.main.transform.forward;
+        cameraForward.y = 0;
+        cameraForward.Normalize();
+        // vitesse globale à l'unique paramètre de l'animator "speed"
+        // A modifier plus tard quand on aura des animations de pas chassé et reculons
+        float speedPercent = rawInput.magnitude;
+        
+        if(cameraForward != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
+            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        }
 
-        movementDirection = new Vector3(rawInput.x, 0, rawInput.y).normalized;
-        float speedPercent = movementDirection.magnitude;
+        movementDirection = (transform.forward * rawInput.y + transform.right * rawInput.x).normalized;
+
         animator.SetFloat("Speed", speedPercent * moveSpeed);
+        //animator.SetFloat("Horizontal", rawInput.x, 0.1f, Time.deltaTime);
+        //animator.SetFloat("Vertical", rawInput.y, 0.1f, Time.deltaTime);
     }
 
     void FixedUpdate()
     {
-        if (movementDirection.magnitude >= 0.1f)
+        if(movementDirection.magnitude >= 0.1f)
         {
             rb.MovePosition(rb.position + movementDirection * moveSpeed * Time.fixedDeltaTime);
-
-            Quaternion targetRotation = Quaternion.LookRotation(movementDirection);
-            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
         }
     }
 }
