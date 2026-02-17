@@ -5,7 +5,7 @@ public class PlayerController : MonoBehaviour
 {
      [Header("Settings")]
     float moveSpeed = 5f;
-    float rotationSpeed = 10f;
+    float rotationSpeed = 50f;
 
     private Rigidbody rb;
     private Animator animator;
@@ -18,6 +18,7 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
 
         rb.sleepThreshold = 0; // Set a low sleep threshold to prevent unwanted sleeping
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     void OnMove(InputValue input)
@@ -38,7 +39,11 @@ public class PlayerController : MonoBehaviour
         if(cameraForward != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
-            rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            // Smooth camera movement
+            // rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        
+            // Direct camera movement
+            rb.rotation = targetRotation;
         }
 
         movementDirection = (transform.forward * rawInput.y + transform.right * rawInput.x).normalized;
