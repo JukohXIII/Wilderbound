@@ -49,6 +49,7 @@ public class PlayerController : MonoBehaviour
         movementDirection = (transform.forward * rawInput.y + transform.right * rawInput.x).normalized;
 
         animator.SetFloat("Speed", speedPercent * moveSpeed);
+        animator.SetFloat("MotionSpeed", rawInput.magnitude);
         //animator.SetFloat("Horizontal", rawInput.x, 0.1f, Time.deltaTime);
         //animator.SetFloat("Vertical", rawInput.y, 0.1f, Time.deltaTime);
     }
@@ -59,6 +60,17 @@ public class PlayerController : MonoBehaviour
         {
             rb.MovePosition(rb.position + movementDirection * moveSpeed * Time.fixedDeltaTime);
         }
+    }
+
+    void OnFootstep(AnimationEvent animationEvent)
+    {
+        // Play footstep sound here
+        // You can use animationEvent to determine which foot is stepping and play different sounds if needed
+    }
+
+    void OnLande(AnimationEvent animationEvent)
+    {
+        // Play landing sound here
     }
 }
 
