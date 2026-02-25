@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
      [Header("Settings")]
-    float moveSpeed = 5f;
+    float moveSpeed = 10f;
     float rotationSpeed = 50f;
 
     private Rigidbody rb;
@@ -34,7 +34,8 @@ public class PlayerController : MonoBehaviour
         cameraForward.Normalize();
         // vitesse globale à l'unique paramètre de l'animator "speed"
         // A modifier plus tard quand on aura des animations de pas chassé et reculons
-        float speedPercent = rawInput.magnitude;
+        float inputMagnitude = Mathf.Clamp01(rawInput.magnitude);
+        float speedPercent = inputMagnitude; // * moveSpeed; // You can multiply by moveSpeed if you want to use the actual speed value in the animator
         
         if(cameraForward != Vector3.zero)
         {
@@ -48,8 +49,8 @@ public class PlayerController : MonoBehaviour
 
         movementDirection = (transform.forward * rawInput.y + transform.right * rawInput.x).normalized;
 
-        animator.SetFloat("Speed", speedPercent * moveSpeed);
-        animator.SetFloat("MotionSpeed", rawInput.magnitude);
+        animator.SetFloat("Speed", speedPercent * moveSpeed, 0.1f, Time.deltaTime);
+        animator.SetFloat("MotionSpeed", inputMagnitude);
         //animator.SetFloat("Horizontal", rawInput.x, 0.1f, Time.deltaTime);
         //animator.SetFloat("Vertical", rawInput.y, 0.1f, Time.deltaTime);
     }
