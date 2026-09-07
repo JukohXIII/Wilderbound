@@ -3,76 +3,84 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-     [Header("Settings")]
-    float moveSpeed = 10f;
-    float rotationSpeed = 50f;
+    [Header("Movement")]
+    [SerializeField] private float moveSpeed = 10f;
+
+    [Header("Look")]
+    [SerializeField] private float mouseSensitivity = 0.15f;
+    [SerializeField] private float minPitch = -30f;
+    [SerializeField] private float maxPitch = 60f;
+
+    [Header("Camera")]
+    [SerializeField] private Transform cameraTransform; // glisse Main Camera ici
+    [SerializeField] private Vector3 cameraShoulderOffset = new Vector3(0.5f, 1.6f, 0f); // X = épaule, Y = hauteur
+    [SerializeField] private float cameraDistance = 3f;
+    [SerializeField] private bool invertY = false;
 
     private Rigidbody rb;
     private Animator animator;
     private Vector2 rawInput;
+    private Vector2 lookInput;
     private Vector3 movementDirection;
+
+    private float yaw;   // rotation horizontale — pilote le corps ET la caméra
+    private float pitch; // rotation verticale — caméra uniquement
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
-
-        rb.sleepThreshold = 0; // Set a low sleep threshold to prevent unwanted sleeping
+        rb.sleepThreshold = 0;
         Cursor.lockState = CursorLockMode.Locked;
+
+        yaw = transform.eulerAngles.y;
     }
 
-    void OnMove(InputValue input)
-    {
-        rawInput = input.Get<Vector2>();
-    }
+    void OnMove(InputValue input) => rawInput = input.Get<Vector2>();
+    void OnLook(InputValue input) => lookInput = input.Get<Vector2>();
 
-    // Update is called once per frame
     void Update()
     {
-        Vector3 cameraForward = Camera.main.transform.forward;
-        cameraForward.y = 0;
-        cameraForward.Normalize();
-        // vitesse globale à l'unique paramètre de l'animator "speed"
-        // A modifier plus tard quand on aura des animations de pas chassé et reculons
-        float inputMagnitude = Mathf.Clamp01(rawInput.magnitude);
-        float speedPercent = inputMagnitude; // * moveSpeed; // You can multiply by moveSpeed if you want to use the actual speed value in the animator
-        
-        if(cameraForward != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
-            // Smooth camera movement
-            // rb.rotation = Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-        
-            // Direct camera movement
-            rb.rotation = targetRotation;
-        }
+        // Accumulate look rotation from raw mouse input — single source of truth
+        yaw += lookInput.x * mouseSensitivity;
+        pitch += (invertY ? -1f : 1f) * lookInput.y * mouseSensitivity;
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
 
+        // Player body rotates horizontally only
+        rb.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+        float inputMagnitude = Mathf.Clamp01(rawInput.magnitude);
         movementDirection = (transform.forward * rawInput.y + transform.right * rawInput.x).normalized;
 
-        animator.SetFloat("Speed", speedPercent * moveSpeed, 0.1f, Time.deltaTime);
+        animator.SetFloat("Speed", inputMagnitude * moveSpeed, 0.1f, Time.deltaTime);
         animator.SetFloat("MotionSpeed", inputMagnitude);
-        //animator.SetFloat("Horizontal", rawInput.x, 0.1f, Time.deltaTime);
-        //animator.SetFloat("Vertical", rawInput.y, 0.1f, Time.deltaTime);
     }
 
     void FixedUpdate()
     {
-        if(movementDirection.magnitude >= 0.1f)
+        if (movementDirection.magnitude >= 0.1f)
         {
             rb.MovePosition(rb.position + movementDirection * moveSpeed * Time.fixedDeltaTime);
         }
     }
 
-    void OnFootstep(AnimationEvent animationEvent)
+    void LateUpdate()
     {
-        // Play footstep sound here
-        // You can use animationEvent to determine which foot is stepping and play different sounds if needed
+        if (cameraTransform == null) return;
+
+        Quaternion lookRotation = Quaternion.Euler(pitch, yaw, 0f);
+
+        // Shoulder pivot: au-dessus du joueur, décalé sur le côté selon le yaw
+        Vector3 pivotPosition = transform.position
+            + Vector3.up * cameraShoulderOffset.y
+            + (Quaternion.Euler(0f, yaw, 0f) * Vector3.right) * cameraShoulderOffset.x;
+
+        Vector3 desiredCameraPosition = pivotPosition - (lookRotation * Vector3.forward) * cameraDistance;
+
+        cameraTransform.position = desiredCameraPosition;
+        cameraTransform.rotation = lookRotation;
     }
 
-    void OnLande(AnimationEvent animationEvent)
-    {
-        // Play landing sound here
-    }
+    void OnFootstep(AnimationEvent animationEvent) { }
+    void OnLande(AnimationEvent animationEvent) { }
 }
-
-
